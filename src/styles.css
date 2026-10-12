@@ -1,0 +1,294 @@
+import { useMemo, useState, useEffect } from 'react';
+
+const initialChats = [
+  {
+    id: 1,
+    name: 'Aisha',
+    phone: '+966 55 111 2233',
+    avatar: 'A',
+    status: 'online',
+    lastSeen: 'online now',
+    unread: 3,
+    messages: [
+      { id: 1, sender: 'them', text: 'Hey! Are you free for a quick call this afternoon?', time: '09:12' },
+      { id: 2, sender: 'me', text: 'Yes, after 3 PM works for me.', time: '09:13' },
+      { id: 3, sender: 'them', text: 'Perfect! I will send the details.', time: '09:14' },
+    ],
+  },
+  {
+    id: 2,
+    name: 'Omar',
+    phone: '+966 50 555 7788',
+    avatar: 'O',
+    status: 'online',
+    lastSeen: 'online now',
+    unread: 1,
+    messages: [
+      { id: 1, sender: 'them', text: 'We are meeting at the cafe at 7.', time: 'Yesterday' },
+      { id: 2, sender: 'me', text: 'Nice, I will be there.', time: 'Yesterday' },
+    ],
+  },
+  {
+    id: 3,
+    name: 'Noura',
+    phone: '+966 55 900 3321',
+    avatar: 'N',
+    status: 'offline',
+    lastSeen: 'last seen 2h ago',
+    unread: 0,
+    messages: [
+      { id: 1, sender: 'them', text: 'The design looks great! Keep it simple.', time: 'Mon' },
+    ],
+  },
+  {
+    id: 4,
+    name: 'Team Product',
+    phone: 'Group chat',
+    avatar: 'T',
+    status: 'online',
+    lastSeen: '12 members online',
+    unread: 5,
+    messages: [
+      { id: 1, sender: 'them', text: 'Morning everyone, review is due today.', time: '08:41' },
+      { id: 2, sender: 'me', text: 'I have completed the UI screens.', time: '08:45' },
+      { id: 3, sender: 'them', text: 'Great, please share the latest build.', time: '08:46' },
+    ],
+  },
+];
+
+const quickReplies = [
+  'Sounds good!',
+  'I am on it.',
+  'Let me check that quickly.',
+  'Perfect, thanks!',
+  'Nice idea, lets do it.',
+  'I will send the updated version soon.',
+  'That works for me.',
+  'We can finalize it today.',
+];
+
+export default function App() {
+  const [isLoggedIn, setIsLoggedIn] = useState(true);
+  const [profileName, setProfileName] = useState('Mohammad');
+  const [phoneNumber, setPhoneNumber] = useState('+966 50 123 4567');
+  const [search, setSearch] = useState('');
+  const [chats, setChats] = useState(initialChats);
+  const [activeChatId, setActiveChatId] = useState(initialChats[0].id);
+  const [draft, setDraft] = useState('');
+  const [typing, setTyping] = useState('');
+
+  const activeChat = useMemo(
+    () => chats.find((chat) => chat.id === activeChatId) ?? chats[0],
+    [chats, activeChatId]
+  );
+
+  const filteredChats = chats.filter((chat) =>
+    chat.name.toLowerCase().includes(search.toLowerCase()) ||
+    chat.phone.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const handleLogin = (event) => {
+    event.preventDefault();
+    if (profileName.trim() && phoneNumber.trim()) {
+      setIsLoggedIn(true);
+    }
+  };
+
+  const sendMessage = () => {
+    const trimmed = draft.trim();
+    if (!trimmed || !activeChat) return;
+
+    const newMessage = {
+      id: Date.now(),
+      sender: 'me',
+      text: trimmed,
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    };
+
+    setChats((currentChats) =>
+      currentChats.map((chat) =>
+        chat.id === activeChat.id
+          ? {
+              ...chat,
+              messages: [...chat.messages, newMessage],
+              unread: 0,
+            }
+          : chat
+      )
+    );
+    setDraft('');
+    setTyping(`${activeChat.name} is typing...`);
+
+    window.setTimeout(() => {
+      const reply = quickReplies[Math.floor(Math.random() * quickReplies.length)];
+      setChats((currentChats) =>
+        currentChats.map((chat) =>
+          chat.id === activeChat.id
+            ? {
+                ...chat,
+                messages: [
+                  ...chat.messages,
+                  {
+                    id: Date.now() + 1,
+                    sender: 'them',
+                    text: reply,
+                    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                  },
+                ],
+              }
+            : chat
+        )
+      );
+      setTyping('');
+    }, 1200);
+  };
+
+  const quickActions = ['Hello', 'Can we meet?', 'Send files'];
+
+  useEffect(() => {
+    if (!activeChat) return;
+    setTyping('');
+  }, [activeChatId]);
+
+  if (!isLoggedIn) {
+    return (
+      <div className="auth-shell">
+        <div className="auth-card">
+          <div className="brand-wrap">
+            <div className="brand-icon">C</div>
+            <div>
+              <p className="eyebrow">Messaging app</p>
+              <h1>ChatWave</h1>
+            </div>
+          </div>
+
+          <form onSubmit={handleLogin} className="auth-form">
+            <label>
+              Your name
+              <input
+                type="text"
+                value={profileName}
+                onChange={(event) => setProfileName(event.target.value)}
+                placeholder="Enter your full name"
+              />
+            </label>
+
+            <label>
+              Phone number
+              <input
+                type="tel"
+                value={phoneNumber}
+                onChange={(event) => setPhoneNumber(event.target.value)}
+                placeholder="+966 50 123 4567"
+              />
+            </label>
+
+            <button type="submit" className="primary-btn">Open messages</button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="app-shell">
+      <aside className="sidebar">
+        <header className="sidebar-header">
+          <div className="avatar profile-avatar">{profileName.charAt(0).toUpperCase()}</div>
+          <div>
+            <h2>{profileName}</h2>
+            <span>{phoneNumber}</span>
+          </div>
+        </header>
+
+        <div className="search-box">
+          <span>⌕</span>
+          <input
+            type="text"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Search chats"
+          />
+        </div>
+
+        <div className="chat-list">
+          {filteredChats.map((chat) => (
+            <button
+              key={chat.id}
+              type="button"
+              className={`chat-item ${chat.id === activeChat.id ? 'active' : ''}`}
+              onClick={() => setActiveChatId(chat.id)}
+            >
+              <div className="avatar small">{chat.avatar}</div>
+              <div className="chat-meta">
+                <div className="chat-row">
+                  <strong>{chat.name}</strong>
+                  <span>{chat.messages[chat.messages.length - 1]?.time}</span>
+                </div>
+                <div className="chat-row">
+                  <small>{chat.messages[chat.messages.length - 1]?.text}</small>
+                  {chat.unread > 0 && <span className="badge">{chat.unread}</span>}
+                </div>
+              </div>
+            </button>
+          ))}
+        </div>
+      </aside>
+
+      <main className="chat-panel">
+        <header className="chat-header">
+          <div className="header-user">
+            <div className="avatar small green">{activeChat.avatar}</div>
+            <div>
+              <h3>{activeChat.name}</h3>
+              <span>{activeChat.lastSeen}</span>
+            </div>
+          </div>
+          <div className="header-actions">
+            <button type="button">☏</button>
+            <button type="button">⋮</button>
+          </div>
+        </header>
+
+        <div className="messages-area">
+          {activeChat.messages.map((message) => (
+            <div
+              key={message.id}
+              className={`message-bubble ${message.sender === 'me' ? 'outgoing' : 'incoming'}`}
+            >
+              <p>{message.text}</p>
+              <span>{message.time}</span>
+            </div>
+          ))}
+
+          {typing && <div className="typing-indicator">{typing}</div>}
+        </div>
+
+        <div className="quick-actions">
+          {quickActions.map((action) => (
+            <button key={action} type="button" onClick={() => setDraft(action)}>
+              {action}
+            </button>
+          ))}
+        </div>
+
+        <div className="composer">
+          <button type="button" className="icon-btn">☺</button>
+          <input
+            type="text"
+            value={draft}
+            onChange={(event) => setDraft(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                sendMessage();
+              }
+            }}
+            placeholder="Type a message"
+          />
+          <button type="button" className="icon-btn">＋</button>
+          <button type="button" className="send-btn" onClick={sendMessage}>Send</button>
+        </div>
+      </main>
+    </div>
+  );
+}
